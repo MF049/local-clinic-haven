@@ -22,10 +22,18 @@ export const Header: React.FC = () => {
 
   const authNavigation = [
     ...navigation,
-    { name: 'مواعيدي', href: '#appointments' },
+    { name: 'حجز موعد', href: '#appointment-booking' },
+    { name: 'مواعيدي', href: '#my-appointments' },
   ];
 
   const currentNavigation = isAuthenticated ? authNavigation : navigation;
+
+  const scrollToSection = (href: string) => {
+    const element = document.querySelector(href);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
 
   return (
     <>
@@ -44,13 +52,13 @@ export const Header: React.FC = () => {
             {/* Desktop Navigation */}
             <nav className="hidden md:flex space-x-8 rtl:space-x-reverse">
               {currentNavigation.map((item) => (
-                <a
+                <button
                   key={item.name}
-                  href={item.href}
+                  onClick={() => scrollToSection(item.href)}
                   className="text-gray-700 hover:text-blue-600 transition-colors duration-200 font-medium"
                 >
                   {item.name}
-                </a>
+                </button>
               ))}
             </nav>
 
@@ -66,7 +74,10 @@ export const Header: React.FC = () => {
                   >
                     تسجيل الخروج
                   </Button>
-                  <Button className="medical-gradient text-white">
+                  <Button 
+                    className="medical-gradient text-white"
+                    onClick={() => scrollToSection('#appointment-booking')}
+                  >
                     حجز موعد
                   </Button>
                 </div>
@@ -109,14 +120,16 @@ export const Header: React.FC = () => {
             <div className="md:hidden py-4 border-t">
               <div className="flex flex-col space-y-4">
                 {currentNavigation.map((item) => (
-                  <a
+                  <button
                     key={item.name}
-                    href={item.href}
-                    className="text-gray-700 hover:text-blue-600 transition-colors duration-200 font-medium"
-                    onClick={() => setIsMobileMenuOpen(false)}
+                    onClick={() => {
+                      scrollToSection(item.href);
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className="text-gray-700 hover:text-blue-600 transition-colors duration-200 font-medium text-right"
                   >
                     {item.name}
-                  </a>
+                  </button>
                 ))}
                 
                 {isAuthenticated ? (
@@ -129,7 +142,13 @@ export const Header: React.FC = () => {
                     >
                       تسجيل الخروج
                     </Button>
-                    <Button className="medical-gradient text-white">
+                    <Button 
+                      className="medical-gradient text-white"
+                      onClick={() => {
+                        scrollToSection('#appointment-booking');
+                        setIsMobileMenuOpen(false);
+                      }}
+                    >
                       حجز موعد
                     </Button>
                   </div>

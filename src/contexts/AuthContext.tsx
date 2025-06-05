@@ -44,11 +44,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
+    console.log('AuthProvider initializing...');
+    
     // Initialize default users if not exists
     const existingUsers = localStorage.getItem('users');
     if (!existingUsers) {
       const defaultUsers = [defaultAdmin, defaultDoctor];
       localStorage.setItem('users', JSON.stringify(defaultUsers));
+      console.log('Created default users');
     } else {
       // Check if admin user exists, if not add it
       const users = JSON.parse(existingUsers);
@@ -59,6 +62,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (!adminExists) users.push(defaultAdmin);
         if (!doctorExists) users.push(defaultDoctor);
         localStorage.setItem('users', JSON.stringify(users));
+        console.log('Added missing default users');
       }
     }
 
@@ -66,19 +70,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const savedUser = localStorage.getItem('currentUser');
     if (savedUser) {
       setUser(JSON.parse(savedUser));
+      console.log('Restored user session');
     }
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
-    // Simulate API call
+    console.log('Login attempt for:', email);
+    // For demo purposes, we'll accept the password as is (in real app, you'd verify it)
     const users = JSON.parse(localStorage.getItem('users') || '[]');
     const foundUser = users.find((u: User) => u.email === email);
     
     if (foundUser) {
       setUser(foundUser);
       localStorage.setItem('currentUser', JSON.stringify(foundUser));
+      console.log('Login successful for:', foundUser.name);
       return true;
     }
+    console.log('Login failed for:', email);
     return false;
   };
 
@@ -94,22 +102,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem('users', JSON.stringify(users));
     setUser(newUser);
     localStorage.setItem('currentUser', JSON.stringify(newUser));
+    console.log('User registered:', newUser.name);
     return true;
   };
 
   const logout = () => {
     setUser(null);
     localStorage.removeItem('currentUser');
+    console.log('User logged out');
   };
 
+  const contextValue = {
+    user,
+    login,
+    register,
+    logout,
+    isAuthenticated: !!user,
+  };
+
+  console.log('AuthProvider rendering with user:', user?.name || 'none');
+
   return (
-    <AuthContext.Provider value={{
-      user,
-      login,
-      register,
-      logout,
-      isAuthenticated: !!user,
-    }}>
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );
