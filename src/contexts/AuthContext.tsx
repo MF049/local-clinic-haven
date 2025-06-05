@@ -20,10 +20,49 @@ export const useAuth = () => {
   return context;
 };
 
+// Pre-created admin user
+const defaultAdmin: User = {
+  id: 'admin-1',
+  name: 'مدير النظام',
+  email: 'admin@alshifa-clinic.com',
+  phone: '+966501234567',
+  role: 'admin',
+  createdAt: new Date('2024-01-01'),
+};
+
+// Pre-created doctor user
+const defaultDoctor: User = {
+  id: 'doctor-1',
+  name: 'د. أحمد محمد',
+  email: 'doctor@alshifa-clinic.com',
+  phone: '+966501234568',
+  role: 'doctor',
+  createdAt: new Date('2024-01-01'),
+};
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
+    // Initialize default users if not exists
+    const existingUsers = localStorage.getItem('users');
+    if (!existingUsers) {
+      const defaultUsers = [defaultAdmin, defaultDoctor];
+      localStorage.setItem('users', JSON.stringify(defaultUsers));
+    } else {
+      // Check if admin user exists, if not add it
+      const users = JSON.parse(existingUsers);
+      const adminExists = users.find((u: User) => u.email === defaultAdmin.email);
+      const doctorExists = users.find((u: User) => u.email === defaultDoctor.email);
+      
+      if (!adminExists || !doctorExists) {
+        if (!adminExists) users.push(defaultAdmin);
+        if (!doctorExists) users.push(defaultDoctor);
+        localStorage.setItem('users', JSON.stringify(users));
+      }
+    }
+
+    // Check for saved user session
     const savedUser = localStorage.getItem('currentUser');
     if (savedUser) {
       setUser(JSON.parse(savedUser));

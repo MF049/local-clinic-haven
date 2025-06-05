@@ -57,6 +57,16 @@ export const LoginDialog: React.FC<LoginDialogProps> = ({ open, onOpenChange }) 
     }
   };
 
+  const fillAdminCredentials = () => {
+    setEmail('admin@alshifa-clinic.com');
+    setPassword('admin123');
+  };
+
+  const fillDoctorCredentials = () => {
+    setEmail('doctor@alshifa-clinic.com');
+    setPassword('doctor123');
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
@@ -99,8 +109,32 @@ export const LoginDialog: React.FC<LoginDialogProps> = ({ open, onOpenChange }) 
             {isLoading ? 'جاري تسجيل الدخول...' : 'تسجيل الدخول'}
           </Button>
         </form>
-        <div className="text-center text-sm text-gray-600">
-          للاختبار: استخدم أي بريد إلكتروني وكلمة مرور
+        
+        <div className="space-y-3 pt-4 border-t">
+          <div className="text-center text-sm text-gray-600 mb-2">
+            حسابات تجريبية:
+          </div>
+          <div className="flex flex-col space-y-2">
+            <Button 
+              type="button"
+              variant="outline"
+              onClick={fillAdminCredentials}
+              className="text-sm"
+            >
+              مدير النظام: admin@alshifa-clinic.com
+            </Button>
+            <Button 
+              type="button"
+              variant="outline"
+              onClick={fillDoctorCredentials}
+              className="text-sm"
+            >
+              طبيب: doctor@alshifa-clinic.com
+            </Button>
+          </div>
+          <div className="text-center text-xs text-gray-500">
+            كلمة المرور لجميع الحسابات: admin123 أو doctor123
+          </div>
         </div>
       </DialogContent>
     </Dialog>
