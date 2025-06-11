@@ -8,8 +8,9 @@ import { Department } from '@/types';
 
 export const ServicesSection: React.FC = () => {
   const [departments, setDepartments] = useState<Department[]>([]);
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  useEffect(() => {
+  const loadDepartmentsAndDoctors = () => {
     // Load departments and doctors from localStorage
     const savedDepartments = localStorage.getItem('departments');
     const savedDoctors = localStorage.getItem('doctors');
@@ -31,6 +32,28 @@ export const ServicesSection: React.FC = () => {
         setDepartments(mockDepartments);
       });
     }
+  };
+
+  useEffect(() => {
+    loadDepartmentsAndDoctors();
+  }, [refreshKey]);
+
+  // Listen for storage changes (when admin adds new data)
+  useEffect(() => {
+    const handleStorageChange = () => {
+      setRefreshKey(prev => prev + 1);
+    };
+
+    // Listen for storage events from other tabs/windows
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Listen for focus events (when user returns to this tab)
+    window.addEventListener('focus', handleStorageChange);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('focus', handleStorageChange);
+    };
   }, []);
 
   const departmentIcons = {

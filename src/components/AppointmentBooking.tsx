@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,8 +20,9 @@ export const AppointmentBooking: React.FC = () => {
   const [selectedTime, setSelectedTime] = useState<string>('');
   const [paymentMethod, setPaymentMethod] = useState<'card' | 'cash'>('cash');
   const [isBooking, setIsBooking] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  useEffect(() => {
+  const loadDepartmentsAndDoctors = () => {
     // Load departments and doctors from localStorage
     const savedDepartments = localStorage.getItem('departments');
     const savedDoctors = localStorage.getItem('doctors');
@@ -44,6 +44,28 @@ export const AppointmentBooking: React.FC = () => {
         setDepartments(mockDepartments);
       });
     }
+  };
+
+  useEffect(() => {
+    loadDepartmentsAndDoctors();
+  }, [refreshKey]);
+
+  // Listen for storage changes (when admin adds new data)
+  useEffect(() => {
+    const handleStorageChange = () => {
+      setRefreshKey(prev => prev + 1);
+    };
+
+    // Listen for storage events from other tabs/windows
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Listen for focus events (when user returns to this tab)
+    window.addEventListener('focus', handleStorageChange);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('focus', handleStorageChange);
+    };
   }, []);
 
   const selectedDept = departments.find(d => d.id === selectedDepartment);
