@@ -1,11 +1,11 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Calendar } from '@/components/ui/calendar';
 import { useAuth } from '@/contexts/AuthContext';
-import { departments } from '@/data/mockData';
+import { Department } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { CalendarIcon, Clock, User, CreditCard, Banknote } from 'lucide-react';
 import { format } from 'date-fns';
@@ -14,12 +14,37 @@ import { ar } from 'date-fns/locale';
 export const AppointmentBooking: React.FC = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const [departments, setDepartments] = useState<Department[]>([]);
   const [selectedDepartment, setSelectedDepartment] = useState<string>('');
   const [selectedDoctor, setSelectedDoctor] = useState<string>('');
   const [selectedDate, setSelectedDate] = useState<Date>();
   const [selectedTime, setSelectedTime] = useState<string>('');
   const [paymentMethod, setPaymentMethod] = useState<'card' | 'cash'>('cash');
   const [isBooking, setIsBooking] = useState(false);
+
+  useEffect(() => {
+    // Load departments and doctors from localStorage
+    const savedDepartments = localStorage.getItem('departments');
+    const savedDoctors = localStorage.getItem('doctors');
+    
+    if (savedDepartments && savedDoctors) {
+      const departmentsData = JSON.parse(savedDepartments);
+      const doctorsData = JSON.parse(savedDoctors);
+      
+      // Group doctors by department
+      const departmentsWithDoctors = departmentsData.map((dept: any) => ({
+        ...dept,
+        doctors: doctorsData.filter((doctor: any) => doctor.department === dept.name)
+      }));
+      
+      setDepartments(departmentsWithDoctors);
+    } else {
+      // Fallback to mock data if no data in localStorage
+      import('@/data/mockData').then(({ departments: mockDepartments }) => {
+        setDepartments(mockDepartments);
+      });
+    }
+  }, []);
 
   const selectedDept = departments.find(d => d.id === selectedDepartment);
   const selectedDoc = selectedDept?.doctors.find(d => d.id === selectedDoctor);
@@ -127,36 +152,40 @@ export const AppointmentBooking: React.FC = () => {
               <div>
                 <h3 className="text-lg font-semibold mb-4 text-right">اختر الطبيب:</h3>
                 <div className="space-y-3">
-                  {selectedDept.doctors.map((doctor) => (
-                    <Card
-                      key={doctor.id}
-                      className={`cursor-pointer transition-all ${
-                        selectedDoctor === doctor.id
-                          ? 'ring-2 ring-blue-500 bg-blue-50'
-                          : 'hover:shadow-md'
-                      }`}
-                      onClick={() => setSelectedDoctor(doctor.id)}
-                    >
-                      <CardContent className="p-4">
-                        <div className="flex items-center space-x-4 rtl:space-x-reverse">
-                          <img
-                            src={doctor.image}
-                            alt={doctor.name}
-                            className="w-16 h-16 rounded-full object-cover"
-                          />
-                          <div className="flex-1 text-right">
-                            <h4 className="font-semibold text-gray-900">{doctor.name}</h4>
-                            <p className="text-gray-600">{doctor.specialty}</p>
-                            <p className="text-sm text-blue-600">{doctor.experience}</p>
-                            <div className="flex items-center justify-end space-x-1 rtl:space-x-reverse mt-2">
-                              <span className="text-yellow-400">★</span>
-                              <span className="text-sm">{doctor.rating}</span>
+                  {selectedDept.doctors && selectedDept.doctors.length > 0 ? (
+                    selectedDept.doctors.map((doctor) => (
+                      <Card
+                        key={doctor.id}
+                        className={`cursor-pointer transition-all ${
+                          selectedDoctor === doctor.id
+                            ? 'ring-2 ring-blue-500 bg-blue-50'
+                            : 'hover:shadow-md'
+                        }`}
+                        onClick={() => setSelectedDoctor(doctor.id)}
+                      >
+                        <CardContent className="p-4">
+                          <div className="flex items-center space-x-4 rtl:space-x-reverse">
+                            <img
+                              src={doctor.image}
+                              alt={doctor.name}
+                              className="w-16 h-16 rounded-full object-cover"
+                            />
+                            <div className="flex-1 text-right">
+                              <h4 className="font-semibold text-gray-900">{doctor.name}</h4>
+                              <p className="text-gray-600">{doctor.specialty}</p>
+                              <p className="text-sm text-blue-600">{doctor.experience}</p>
+                              <div className="flex items-center justify-end space-x-1 rtl:space-x-reverse mt-2">
+                                <span className="text-yellow-400">★</span>
+                                <span className="text-sm">{doctor.rating}</span>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                        </CardContent>
+                      </Card>
+                    ))
+                  ) : (
+                    <p className="text-gray-500 text-center">لا توجد أطباء متاحون في هذا القسم حالياً</p>
+                  )}
                 </div>
               </div>
             )}

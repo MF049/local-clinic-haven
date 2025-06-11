@@ -1,12 +1,38 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Heart, Baby, Activity, Eye, Brain, Bone } from 'lucide-react';
-import { departments, doctors } from '@/data/mockData';
+import { Department } from '@/types';
 
 export const ServicesSection: React.FC = () => {
+  const [departments, setDepartments] = useState<Department[]>([]);
+
+  useEffect(() => {
+    // Load departments and doctors from localStorage
+    const savedDepartments = localStorage.getItem('departments');
+    const savedDoctors = localStorage.getItem('doctors');
+    
+    if (savedDepartments && savedDoctors) {
+      const departmentsData = JSON.parse(savedDepartments);
+      const doctorsData = JSON.parse(savedDoctors);
+      
+      // Group doctors by department
+      const departmentsWithDoctors = departmentsData.map((dept: any) => ({
+        ...dept,
+        doctors: doctorsData.filter((doctor: any) => doctor.department === dept.name)
+      }));
+      
+      setDepartments(departmentsWithDoctors);
+    } else {
+      // Fallback to mock data if no data in localStorage
+      import('@/data/mockData').then(({ departments: mockDepartments }) => {
+        setDepartments(mockDepartments);
+      });
+    }
+  }, []);
+
   const departmentIcons = {
     heart: Heart,
     baby: Baby,
@@ -49,48 +75,52 @@ export const ServicesSection: React.FC = () => {
                   <div>
                     <h4 className="font-semibold text-gray-900 mb-3 text-right">الأطباء المتوفرون:</h4>
                     <div className="space-y-3">
-                      {department.doctors.map((doctor) => (
-                        <div key={doctor.id} className="bg-gray-50 rounded-lg p-4">
-                          <div className="flex items-center space-x-3 rtl:space-x-reverse mb-2">
-                            <img
-                              src={doctor.image}
-                              alt={doctor.name}
-                              className="w-12 h-12 rounded-full object-cover"
-                            />
-                            <div className="flex-1 text-right">
-                              <h5 className="font-semibold text-gray-900">{doctor.name}</h5>
-                              <p className="text-sm text-gray-600">{doctor.specialty}</p>
-                              <p className="text-xs text-blue-600">{doctor.experience}</p>
-                            </div>
-                            <div className="text-right">
-                              <div className="flex items-center space-x-1 rtl:space-x-reverse">
-                                <span className="text-yellow-400 text-lg">★</span>
-                                <span className="text-sm font-medium">{doctor.rating}</span>
+                      {department.doctors && department.doctors.length > 0 ? (
+                        department.doctors.map((doctor) => (
+                          <div key={doctor.id} className="bg-gray-50 rounded-lg p-4">
+                            <div className="flex items-center space-x-3 rtl:space-x-reverse mb-2">
+                              <img
+                                src={doctor.image}
+                                alt={doctor.name}
+                                className="w-12 h-12 rounded-full object-cover"
+                              />
+                              <div className="flex-1 text-right">
+                                <h5 className="font-semibold text-gray-900">{doctor.name}</h5>
+                                <p className="text-sm text-gray-600">{doctor.specialty}</p>
+                                <p className="text-xs text-blue-600">{doctor.experience}</p>
+                              </div>
+                              <div className="text-right">
+                                <div className="flex items-center space-x-1 rtl:space-x-reverse">
+                                  <span className="text-yellow-400 text-lg">★</span>
+                                  <span className="text-sm font-medium">{doctor.rating}</span>
+                                </div>
                               </div>
                             </div>
-                          </div>
-                          
-                          <div className="mb-3">
-                            <p className="text-sm font-medium text-gray-700 mb-2 text-right">المواعيد المتاحة اليوم:</p>
-                            <div className="flex flex-wrap gap-2 justify-end">
-                              {doctor.availableSlots.slice(0, 3).map((slot, index) => (
-                                <Badge key={index} variant="outline" className="text-green-600 border-green-600">
-                                  {slot}
-                                </Badge>
-                              ))}
-                              {doctor.availableSlots.length > 3 && (
-                                <Badge variant="outline" className="text-gray-600">
-                                  +{doctor.availableSlots.length - 3} أخرى
-                                </Badge>
-                              )}
+                            
+                            <div className="mb-3">
+                              <p className="text-sm font-medium text-gray-700 mb-2 text-right">المواعيد المتاحة اليوم:</p>
+                              <div className="flex flex-wrap gap-2 justify-end">
+                                {doctor.availableSlots.slice(0, 3).map((slot, index) => (
+                                  <Badge key={index} variant="outline" className="text-green-600 border-green-600">
+                                    {slot}
+                                  </Badge>
+                                ))}
+                                {doctor.availableSlots.length > 3 && (
+                                  <Badge variant="outline" className="text-gray-600">
+                                    +{doctor.availableSlots.length - 3} أخرى
+                                  </Badge>
+                                )}
+                              </div>
                             </div>
+                            
+                            <Button className="w-full medical-gradient text-white">
+                              احجز مع {doctor.name}
+                            </Button>
                           </div>
-                          
-                          <Button className="w-full medical-gradient text-white">
-                            احجز مع {doctor.name}
-                          </Button>
-                        </div>
-                      ))}
+                        ))
+                      ) : (
+                        <p className="text-gray-500 text-center">لا توجد أطباء متاحون في هذا القسم حالياً</p>
+                      )}
                     </div>
                   </div>
                 </CardContent>
