@@ -3,8 +3,9 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuth } from '@/contexts/AuthContext';
-import { Appointment } from '@/types';
+import { Appointment, Doctor } from '@/types';
 import { Calendar, Clock, User, Phone, CreditCard, CheckCircle, XCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
@@ -14,17 +15,39 @@ export const DoctorDashboard: React.FC = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [doctors, setDoctors] = useState<Doctor[]>([]);
+  const [selectedDoctorId, setSelectedDoctorId] = useState<string>('');
+  const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
 
   useEffect(() => {
-    if (user) {
-      const allAppointments = JSON.parse(localStorage.getItem('appointments') || '[]');
-      // Filter appointments for this doctor by name since we don't have doctorId in user
-      const doctorAppointments = allAppointments.filter((apt: Appointment) => 
-        apt.doctorName === user.name
-      );
-      setAppointments(doctorAppointments);
+    // Load doctors from localStorage
+    const allDepartments = JSON.parse(localStorage.getItem('departments') || '[]');
+    const allDoctors: Doctor[] = [];
+    allDepartments.forEach((dept: any) => {
+      if (dept.doctors) {
+        allDoctors.push(...dept.doctors);
+      }
+    });
+    setDoctors(allDoctors);
+  }, []);
+
+  useEffect(() => {
+    if (selectedDoctorId) {
+      const doctor = doctors.find(d => d.id === selectedDoctorId);
+      setSelectedDoctor(doctor || null);
+      
+      if (doctor) {
+        const allAppointments = JSON.parse(localStorage.getItem('appointments') || '[]');
+        const doctorAppointments = allAppointments.filter((apt: Appointment) => 
+          apt.doctorName === doctor.name
+        );
+        setAppointments(doctorAppointments);
+      }
+    } else {
+      setAppointments([]);
+      setSelectedDoctor(null);
     }
-  }, [user]);
+  }, [selectedDoctorId, doctors]);
 
   const updateAppointmentStatus = (appointmentId: string, newStatus: 'confirmed' | 'completed' | 'cancelled') => {
     const allAppointments = JSON.parse(localStorage.getItem('appointments') || '[]');
@@ -77,164 +100,207 @@ export const DoctorDashboard: React.FC = () => {
       <Card className="medical-gradient text-white">
         <CardContent className="p-6">
           <h2 className="text-2xl font-bold mb-2">مرحباً، {user?.name}</h2>
-          <p className="text-blue-100">لديك {getTodayAppointments().length} مواعيد اليوم</p>
+          <p className="text-blue-100">اختر طبيباً لعرض مواعيده</p>
         </CardContent>
       </Card>
 
-      {/* Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">مواعيد اليوم</p>
-                <p className="text-3xl font-bold text-blue-600">{getTodayAppointments().length}</p>
-              </div>
-              <Calendar className="h-8 w-8 text-blue-600" />
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">المواعيد القادمة</p>
-                <p className="text-3xl font-bold text-green-600">{getUpcomingAppointments().length}</p>
-              </div>
-              <Clock className="h-8 w-8 text-green-600" />
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">إجمالي المواعيد</p>
-                <p className="text-3xl font-bold text-purple-600">{appointments.length}</p>
-              </div>
-              <User className="h-8 w-8 text-purple-600" />
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">المواعيد المكتملة</p>
-                <p className="text-3xl font-bold text-orange-600">
-                  {appointments.filter(apt => apt.status === 'completed').length}
-                </p>
-              </div>
-              <CheckCircle className="h-8 w-8 text-orange-600" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Appointments List */}
+      {/* Doctor Selection */}
       <Card>
         <CardHeader>
-          <CardTitle>مواعيدي</CardTitle>
+          <CardTitle>اختيار الطبيب</CardTitle>
         </CardHeader>
         <CardContent>
-          {appointments.length === 0 ? (
-            <div className="text-center py-12">
-              <Calendar className="h-16 w-16 mx-auto text-gray-400 mb-4" />
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">لا توجد مواعيد</h3>
-              <p className="text-gray-600">لم يتم حجز أي مواعيد معك بعد</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {appointments.map((appointment) => (
-                <Card key={appointment.id} className="border">
-                  <CardContent className="p-4">
-                    <div className="flex justify-between items-start mb-4">
-                      <div className="text-right">
-                        <h4 className="font-semibold text-lg">{appointment.patientName}</h4>
-                        {getStatusBadge(appointment.status)}
-                      </div>
-                      <div className="text-left">
-                        <p className="text-sm text-gray-500">
-                          {format(new Date(appointment.date), 'dd MMMM yyyy', { locale: ar })}
-                        </p>
-                        <p className="text-sm font-medium">{appointment.time}</p>
-                      </div>
-                    </div>
-                    
-                    <div className="grid md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <div className="flex items-center space-x-2 rtl:space-x-reverse">
-                          <Calendar className="h-4 w-4 text-blue-600" />
-                          <span className="text-sm">
-                            {format(new Date(appointment.date), 'EEEE, dd MMMM yyyy', { locale: ar })}
-                          </span>
-                        </div>
-                        
-                        <div className="flex items-center space-x-2 rtl:space-x-reverse">
-                          <Clock className="h-4 w-4 text-green-600" />
-                          <span className="text-sm">{appointment.time}</span>
-                        </div>
-                        
-                        <div className="flex items-center space-x-2 rtl:space-x-reverse">
-                          <CreditCard className="h-4 w-4 text-purple-600" />
-                          <span className="text-sm">
-                            {appointment.paymentMethod === 'cash' ? 'نقداً' : 'بطاقة ائتمان'}
-                          </span>
-                        </div>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        {appointment.notes && (
-                          <div className="bg-gray-50 rounded-lg p-3">
-                            <p className="text-sm text-gray-700">
-                              <strong>ملاحظات:</strong> {appointment.notes}
-                            </p>
-                          </div>
-                        )}
-                        
-                        {appointment.status === 'pending' && (
-                          <div className="flex space-x-2 rtl:space-x-reverse">
-                            <Button
-                              size="sm"
-                              onClick={() => updateAppointmentStatus(appointment.id, 'confirmed')}
-                              className="bg-green-600 hover:bg-green-700"
-                            >
-                              <CheckCircle className="h-4 w-4 mr-1" />
-                              تأكيد
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              onClick={() => updateAppointmentStatus(appointment.id, 'cancelled')}
-                            >
-                              <XCircle className="h-4 w-4 mr-1" />
-                              إلغاء
-                            </Button>
-                          </div>
-                        )}
-                        
-                        {appointment.status === 'confirmed' && (
-                          <Button
-                            size="sm"
-                            onClick={() => updateAppointmentStatus(appointment.id, 'completed')}
-                            className="bg-blue-600 hover:bg-blue-700"
-                          >
-                            <CheckCircle className="h-4 w-4 mr-1" />
-                            إكمال الموعد
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+          <Select value={selectedDoctorId} onValueChange={setSelectedDoctorId}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="اختر طبيباً لعرض مواعيده" />
+            </SelectTrigger>
+            <SelectContent>
+              {doctors.map((doctor) => (
+                <SelectItem key={doctor.id} value={doctor.id}>
+                  {doctor.name} - {doctor.specialty}
+                </SelectItem>
               ))}
-            </div>
-          )}
+            </SelectContent>
+          </Select>
         </CardContent>
       </Card>
+
+      {selectedDoctor && (
+        <>
+          {/* Selected Doctor Info */}
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center space-x-4 rtl:space-x-reverse">
+                <img 
+                  src={selectedDoctor.image} 
+                  alt={selectedDoctor.name}
+                  className="w-16 h-16 rounded-full object-cover"
+                />
+                <div>
+                  <h3 className="text-xl font-bold">{selectedDoctor.name}</h3>
+                  <p className="text-gray-600">{selectedDoctor.specialty}</p>
+                  <p className="text-sm text-gray-500">{selectedDoctor.experience}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Statistics */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-600">مواعيد اليوم</p>
+                    <p className="text-3xl font-bold text-blue-600">{getTodayAppointments().length}</p>
+                  </div>
+                  <Calendar className="h-8 w-8 text-blue-600" />
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-600">المواعيد القادمة</p>
+                    <p className="text-3xl font-bold text-green-600">{getUpcomingAppointments().length}</p>
+                  </div>
+                  <Clock className="h-8 w-8 text-green-600" />
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-600">إجمالي المواعيد</p>
+                    <p className="text-3xl font-bold text-purple-600">{appointments.length}</p>
+                  </div>
+                  <User className="h-8 w-8 text-purple-600" />
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-600">المواعيد المكتملة</p>
+                    <p className="text-3xl font-bold text-orange-600">
+                      {appointments.filter(apt => apt.status === 'completed').length}
+                    </p>
+                  </div>
+                  <CheckCircle className="h-8 w-8 text-orange-600" />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Appointments List */}
+          <Card>
+            <CardHeader>
+              <CardTitle>مواعيد {selectedDoctor.name}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {appointments.length === 0 ? (
+                <div className="text-center py-12">
+                  <Calendar className="h-16 w-16 mx-auto text-gray-400 mb-4" />
+                  <h3 className="text-xl font-semibold text-gray-900 mb-2">لا توجد مواعيد</h3>
+                  <p className="text-gray-600">لم يتم حجز أي مواعيد مع هذا الطبيب بعد</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {appointments.map((appointment) => (
+                    <Card key={appointment.id} className="border">
+                      <CardContent className="p-4">
+                        <div className="flex justify-between items-start mb-4">
+                          <div className="text-right">
+                            <h4 className="font-semibold text-lg">{appointment.patientName}</h4>
+                            {getStatusBadge(appointment.status)}
+                          </div>
+                          <div className="text-left">
+                            <p className="text-sm text-gray-500">
+                              {format(new Date(appointment.date), 'dd MMMM yyyy', { locale: ar })}
+                            </p>
+                            <p className="text-sm font-medium">{appointment.time}</p>
+                          </div>
+                        </div>
+                        
+                        <div className="grid md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <div className="flex items-center space-x-2 rtl:space-x-reverse">
+                              <Calendar className="h-4 w-4 text-blue-600" />
+                              <span className="text-sm">
+                                {format(new Date(appointment.date), 'EEEE, dd MMMM yyyy', { locale: ar })}
+                              </span>
+                            </div>
+                            
+                            <div className="flex items-center space-x-2 rtl:space-x-reverse">
+                              <Clock className="h-4 w-4 text-green-600" />
+                              <span className="text-sm">{appointment.time}</span>
+                            </div>
+                            
+                            <div className="flex items-center space-x-2 rtl:space-x-reverse">
+                              <CreditCard className="h-4 w-4 text-purple-600" />
+                              <span className="text-sm">
+                                {appointment.paymentMethod === 'cash' ? 'نقداً' : 'بطاقة ائتمان'}
+                              </span>
+                            </div>
+                          </div>
+                          
+                          <div className="space-y-2">
+                            {appointment.notes && (
+                              <div className="bg-gray-50 rounded-lg p-3">
+                                <p className="text-sm text-gray-700">
+                                  <strong>ملاحظات:</strong> {appointment.notes}
+                                </p>
+                              </div>
+                            )}
+                            
+                            {appointment.status === 'pending' && (
+                              <div className="flex space-x-2 rtl:space-x-reverse">
+                                <Button
+                                  size="sm"
+                                  onClick={() => updateAppointmentStatus(appointment.id, 'confirmed')}
+                                  className="bg-green-600 hover:bg-green-700"
+                                >
+                                  <CheckCircle className="h-4 w-4 mr-1" />
+                                  تأكيد
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  onClick={() => updateAppointmentStatus(appointment.id, 'cancelled')}
+                                >
+                                  <XCircle className="h-4 w-4 mr-1" />
+                                  إلغاء
+                                </Button>
+                              </div>
+                            )}
+                            
+                            {appointment.status === 'confirmed' && (
+                              <Button
+                                size="sm"
+                                onClick={() => updateAppointmentStatus(appointment.id, 'completed')}
+                                className="bg-blue-600 hover:bg-blue-700"
+                              >
+                                <CheckCircle className="h-4 w-4 mr-1" />
+                                إكمال الموعد
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </>
+      )}
     </div>
   );
 };
