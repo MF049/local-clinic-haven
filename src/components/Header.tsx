@@ -1,10 +1,9 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { LoginDialog } from '@/components/auth/LoginDialog';
 import { RegisterDialog } from '@/components/auth/RegisterDialog';
-import { Menu, X, Heart } from 'lucide-react';
+import { Menu, X, Heart, Settings, Calendar } from 'lucide-react';
 import { clinicInfo } from '@/data/mockData';
 
 export const Header: React.FC = () => {
@@ -12,6 +11,7 @@ export const Header: React.FC = () => {
   const [showLogin, setShowLogin] = useState(false);
   const [showRegister, setShowRegister] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [showDashboard, setShowDashboard] = useState(false);
 
   const navigation = [
     { name: 'الرئيسية', href: '#hero' },
@@ -33,6 +33,21 @@ export const Header: React.FC = () => {
     if (element) {
       element.scrollIntoView({ behavior: 'smooth' });
     }
+  };
+
+  const toggleDashboard = () => {
+    setShowDashboard(!showDashboard);
+    // Hide dashboard sections when navigating back
+    const dashboardSections = document.querySelectorAll('#admin-dashboard, #doctor-dashboard');
+    dashboardSections.forEach(section => {
+      (section as HTMLElement).style.display = showDashboard ? 'none' : 'block';
+    });
+    
+    // Show/hide main content
+    const mainSections = document.querySelectorAll('#hero, #about, #services, #appointment-booking, #my-appointments, #contact');
+    mainSections.forEach(section => {
+      (section as HTMLElement).style.display = showDashboard ? 'block' : 'none';
+    });
   };
 
   return (
@@ -67,6 +82,19 @@ export const Header: React.FC = () => {
               {isAuthenticated ? (
                 <div className="flex items-center space-x-4 rtl:space-x-reverse">
                   <span className="text-gray-700">مرحباً، {user?.name}</span>
+                  
+                  {/* Dashboard button for admin and doctor */}
+                  {(user?.role === 'admin' || user?.role === 'doctor') && (
+                    <Button
+                      variant="outline"
+                      onClick={toggleDashboard}
+                      className="border-blue-600 text-blue-600 hover:bg-blue-50"
+                    >
+                      {user?.role === 'admin' ? <Settings className="mr-2 h-4 w-4" /> : <Calendar className="mr-2 h-4 w-4" />}
+                      {showDashboard ? 'العودة للموقع' : (user?.role === 'admin' ? 'لوحة الإدارة' : 'لوحة الطبيب')}
+                    </Button>
+                  )}
+                  
                   <Button
                     variant="outline"
                     onClick={logout}
@@ -74,12 +102,15 @@ export const Header: React.FC = () => {
                   >
                     تسجيل الخروج
                   </Button>
-                  <Button 
-                    className="medical-gradient text-white"
-                    onClick={() => scrollToSection('#appointment-booking')}
-                  >
-                    حجز موعد
-                  </Button>
+                  
+                  {!showDashboard && (
+                    <Button 
+                      className="medical-gradient text-white"
+                      onClick={() => scrollToSection('#appointment-booking')}
+                    >
+                      حجز موعد
+                    </Button>
+                  )}
                 </div>
               ) : (
                 <div className="flex items-center space-x-2 rtl:space-x-reverse">
@@ -135,6 +166,20 @@ export const Header: React.FC = () => {
                 {isAuthenticated ? (
                   <div className="flex flex-col space-y-2 pt-4 border-t">
                     <span className="text-gray-700">مرحباً، {user?.name}</span>
+                    
+                    {(user?.role === 'admin' || user?.role === 'doctor') && (
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          toggleDashboard();
+                          setIsMobileMenuOpen(false);
+                        }}
+                        className="border-blue-600 text-blue-600 hover:bg-blue-50"
+                      >
+                        {user?.role === 'admin' ? 'لوحة الإدارة' : 'لوحة الطبيب'}
+                      </Button>
+                    )}
+                    
                     <Button
                       variant="outline"
                       onClick={logout}
@@ -142,15 +187,18 @@ export const Header: React.FC = () => {
                     >
                       تسجيل الخروج
                     </Button>
-                    <Button 
-                      className="medical-gradient text-white"
-                      onClick={() => {
-                        scrollToSection('#appointment-booking');
-                        setIsMobileMenuOpen(false);
-                      }}
-                    >
-                      حجز موعد
-                    </Button>
+                    
+                    {!showDashboard && (
+                      <Button 
+                        className="medical-gradient text-white"
+                        onClick={() => {
+                          scrollToSection('#appointment-booking');
+                          setIsMobileMenuOpen(false);
+                        }}
+                      >
+                        حجز موعد
+                      </Button>
+                    )}
                   </div>
                 ) : (
                   <div className="flex flex-col space-y-2 pt-4 border-t">
