@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -29,6 +28,8 @@ export const DoctorDashboard: React.FC = () => {
       }
     });
     setDoctors(allDoctors);
+    
+    console.log('Loaded doctors:', allDoctors);
   }, []);
 
   useEffect(() => {
@@ -38,9 +39,15 @@ export const DoctorDashboard: React.FC = () => {
       
       if (doctor) {
         const allAppointments = JSON.parse(localStorage.getItem('appointments') || '[]');
+        console.log('All appointments:', allAppointments);
+        console.log('Looking for appointments for doctor:', doctor.name);
+        
+        // Filter appointments by both doctorName and doctorId to ensure we catch all matches
         const doctorAppointments = allAppointments.filter((apt: Appointment) => 
-          apt.doctorName === doctor.name
+          apt.doctorName === doctor.name || apt.doctorId === doctor.id
         );
+        
+        console.log('Filtered appointments for doctor:', doctorAppointments);
         setAppointments(doctorAppointments);
       }
     } else {
@@ -48,6 +55,27 @@ export const DoctorDashboard: React.FC = () => {
       setSelectedDoctor(null);
     }
   }, [selectedDoctorId, doctors]);
+
+  // Listen for appointment changes
+  useEffect(() => {
+    const handleStorageChange = () => {
+      if (selectedDoctorId && selectedDoctor) {
+        const allAppointments = JSON.parse(localStorage.getItem('appointments') || '[]');
+        const doctorAppointments = allAppointments.filter((apt: Appointment) => 
+          apt.doctorName === selectedDoctor.name || apt.doctorId === selectedDoctor.id
+        );
+        setAppointments(doctorAppointments);
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('focus', handleStorageChange);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('focus', handleStorageChange);
+    };
+  }, [selectedDoctorId, selectedDoctor]);
 
   const updateAppointmentStatus = (appointmentId: string, newStatus: 'confirmed' | 'completed' | 'cancelled') => {
     const allAppointments = JSON.parse(localStorage.getItem('appointments') || '[]');
