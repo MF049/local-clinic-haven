@@ -15,12 +15,34 @@ export const MyAppointments: React.FC = () => {
   const { toast } = useToast();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
 
-  useEffect(() => {
+  const loadAppointments = () => {
     if (user) {
       const allAppointments = JSON.parse(localStorage.getItem('appointments') || '[]');
       const userAppointments = allAppointments.filter((apt: Appointment) => apt.patientId === user.id);
       setAppointments(userAppointments);
     }
+  };
+
+  useEffect(() => {
+    loadAppointments();
+  }, [user]);
+
+  // Listen for appointment changes from admin panel
+  useEffect(() => {
+    const handleStorageChange = () => {
+      loadAppointments();
+    };
+
+    // Listen for storage events from other tabs/windows
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Listen for focus events (when user returns to this tab)
+    window.addEventListener('focus', handleStorageChange);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('focus', handleStorageChange);
+    };
   }, [user]);
 
   const cancelAppointment = (appointmentId: string) => {
@@ -50,6 +72,17 @@ export const MyAppointments: React.FC = () => {
     
     const statusInfo = statusMap[status as keyof typeof statusMap] || statusMap.pending;
     return <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>;
+  };
+
+  const getStatusText = (status: string) => {
+    const statusMap = {
+      pending: 'في الانتظار',
+      confirmed: 'مؤكد', 
+      completed: 'مكتمل',
+      cancelled: 'ملغي',
+    };
+    
+    return statusMap[status as keyof typeof statusMap] || 'في الانتظار';
   };
 
   if (!user) {
@@ -137,7 +170,7 @@ export const MyAppointments: React.FC = () => {
                             {appointment.paymentMethod === 'cash' ? 'الدفع نقداً' : 'الدفع بالبطاقة'}
                           </p>
                           <p className="text-sm text-gray-600">
-                            الحالة: {appointment.paymentStatus === 'paid' ? 'مدفوع' : 'في الانتظار'}
+                            الحالة: {getStatusText(appointment.status)}
                           </p>
                         </div>
                       </div>
