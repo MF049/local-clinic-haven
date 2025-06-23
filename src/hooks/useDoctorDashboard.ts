@@ -11,14 +11,22 @@ export const useDoctorDashboard = () => {
   useEffect(() => {
     // Load doctors from localStorage
     const allDepartments = JSON.parse(localStorage.getItem('departments') || '[]');
-    const allDoctors: Doctor[] = [];
+    const savedDoctors = JSON.parse(localStorage.getItem('doctors') || '[]');
+    
+    // Combine doctors from departments and saved doctors
+    const allDoctors: Doctor[] = [...savedDoctors];
     allDepartments.forEach((dept: any) => {
       if (dept.doctors) {
-        allDoctors.push(...dept.doctors);
+        dept.doctors.forEach((doctor: Doctor) => {
+          // Only add if not already in the list
+          if (!allDoctors.find(d => d.id === doctor.id)) {
+            allDoctors.push(doctor);
+          }
+        });
       }
     });
-    setDoctors(allDoctors);
     
+    setDoctors(allDoctors);
     console.log('Loaded doctors:', allDoctors);
   }, []);
 

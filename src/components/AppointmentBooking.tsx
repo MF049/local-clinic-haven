@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
@@ -7,6 +6,7 @@ import { User } from 'lucide-react';
 import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import { useAppointmentData } from '@/hooks/useAppointmentData';
+import { useAppointmentConflicts } from '@/hooks/useAppointmentConflicts';
 import { DepartmentSelection } from '@/components/appointment/DepartmentSelection';
 import { DoctorSelection } from '@/components/appointment/DoctorSelection';
 import { DateTimeSelection } from '@/components/appointment/DateTimeSelection';
@@ -17,6 +17,7 @@ export const AppointmentBooking: React.FC = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const { departments } = useAppointmentData();
+  const { checkDoctorAvailability, checkUserAvailability } = useAppointmentConflicts();
   const [selectedDepartment, setSelectedDepartment] = useState<string>('');
   const [selectedDoctor, setSelectedDoctor] = useState<string>('');
   const [selectedDate, setSelectedDate] = useState<Date>();
@@ -33,10 +34,34 @@ export const AppointmentBooking: React.FC = () => {
   };
 
   const handleBooking = async () => {
-    if (!selectedDepartment || !selectedDoctor || !selectedDate || !selectedTime) {
+    if (!selectedDepartment || !selectedDoctor || !selectedDate || !selectedTime || !user) {
       toast({
         title: 'بيانات ناقصة',
         description: 'يرجى تعبئة جميع البيانات المطلوبة',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const dateString = format(selectedDate, 'yyyy-MM-dd');
+
+    // Check for conflicts
+    const isDoctorAvailable = checkDoctorAvailability(selectedDoctor, dateString, selectedTime);
+    const isUserAvailable = checkUserAvailability(user.id, dateString, selectedTime);
+
+    if (!isDoctorAvailable) {
+      toast({
+        title: 'موعد غير متاح',
+        description: 'هذا الموعد محجوز بالفعل مع الطبيب. يرجى اختيار موعد آخر',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (!isUserAvailable) {
+      toast({
+        title: 'تعارض في المواعيد',
+        description: 'لديك موعد آخر في نفس هذا الوقت. يرجى اختيار وقت مختلف',
         variant: 'destructive',
       });
       return;
@@ -48,12 +73,12 @@ export const AppointmentBooking: React.FC = () => {
     setTimeout(() => {
       const newAppointment = {
         id: Date.now().toString(),
-        patientId: user?.id || '',
-        patientName: user?.name || '',
+        patientId: user.id,
+        patientName: user.name,
         doctorId: selectedDoctor,
         doctorName: selectedDoc?.name || '',
         department: selectedDept?.name || '',
-        date: format(selectedDate, 'yyyy-MM-dd'),
+        date: dateString,
         time: selectedTime,
         status: 'pending' as const,
         paymentMethod,
