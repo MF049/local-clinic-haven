@@ -18,21 +18,43 @@ export const AdminDashboard: React.FC = () => {
   const [showAddDepartment, setShowAddDepartment] = useState(false);
   const { toast } = useToast();
 
-  useEffect(() => {
+  const loadData = () => {
     // Load data from localStorage
     const savedDoctors = localStorage.getItem('doctors');
     const savedDepartments = localStorage.getItem('departments');
     const savedAppointments = localStorage.getItem('appointments');
 
     if (savedDoctors) setDoctors(JSON.parse(savedDoctors));
-    if (savedDepartments) setDepartments(JSON.parse(savedDepartments));
+    if (savedDepartments) {
+      const departmentsData = JSON.parse(savedDepartments);
+      const doctorsData = savedDoctors ? JSON.parse(savedDoctors) : [];
+      
+      // Associate doctors with departments
+      const departmentsWithDoctors = departmentsData.map((dept: Department) => ({
+        ...dept,
+        doctors: doctorsData.filter((doctor: Doctor) => doctor.department === dept.name)
+      }));
+      
+      setDepartments(departmentsWithDoctors);
+    }
     if (savedAppointments) setAppointments(JSON.parse(savedAppointments));
+  };
+
+  useEffect(() => {
+    loadData();
   }, []);
 
   const deleteDoctor = (doctorId: string) => {
     const updatedDoctors = doctors.filter(d => d.id !== doctorId);
     setDoctors(updatedDoctors);
     localStorage.setItem('doctors', JSON.stringify(updatedDoctors));
+    
+    // Update departments to reflect the change
+    const updatedDepartments = departments.map(dept => ({
+      ...dept,
+      doctors: updatedDoctors.filter(doctor => doctor.department === dept.name)
+    }));
+    setDepartments(updatedDepartments);
     
     toast({
       title: 'تم حذف الطبيب',
@@ -54,6 +76,25 @@ export const AdminDashboard: React.FC = () => {
   const getTotalPatients = () => {
     const users = JSON.parse(localStorage.getItem('users') || '[]');
     return users.filter((u: any) => u.role === 'patient').length;
+  };
+
+  const handleDoctorAdded = (doctor: Doctor) => {
+    const updatedDoctors = [...doctors, doctor];
+    setDoctors(updatedDoctors);
+    localStorage.setItem('doctors', JSON.stringify(updatedDoctors));
+    
+    // Update departments to reflect the new doctor
+    const updatedDepartments = departments.map(dept => ({
+      ...dept,
+      doctors: updatedDoctors.filter(d => d.department === dept.name)
+    }));
+    setDepartments(updatedDepartments);
+  };
+
+  const handleDepartmentAdded = (department: Department) => {
+    const updatedDepartments = [...departments, { ...department, doctors: [] }];
+    setDepartments(updatedDepartments);
+    localStorage.setItem('departments', JSON.stringify(updatedDepartments));
   };
 
   return (
@@ -205,21 +246,13 @@ export const AdminDashboard: React.FC = () => {
         open={showAddDoctor} 
         onOpenChange={setShowAddDoctor}
         departments={departments}
-        onDoctorAdded={(doctor) => {
-          const updatedDoctors = [...doctors, doctor];
-          setDoctors(updatedDoctors);
-          localStorage.setItem('doctors', JSON.stringify(updatedDoctors));
-        }}
+        onDoctorAdded={handleDoctorAdded}
       />
       
       <AddDepartmentDialog 
         open={showAddDepartment} 
         onOpenChange={setShowAddDepartment}
-        onDepartmentAdded={(department) => {
-          const updatedDepartments = [...departments, department];
-          setDepartments(updatedDepartments);
-          localStorage.setItem('departments', JSON.stringify(updatedDepartments));
-        }}
+        onDepartmentAdded={handleDepartmentAdded}
       />
     </div>
   );
